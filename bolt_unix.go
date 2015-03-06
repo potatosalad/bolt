@@ -23,7 +23,11 @@ func flock(f *os.File, timeout time.Duration) error {
 		}
 
 		// Otherwise attempt to obtain an exclusive lock.
-		err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+		flock := syscall.Flock_t{
+			Type:  syscall.F_WRLCK,
+			Start: 0, Len: 0, Whence: 0,
+		}
+		err := syscall.FcntlFlock(f.Fd(), syscall.F_SETLK, &flock)
 		if err == nil {
 			return nil
 		} else if err != syscall.EWOULDBLOCK {
@@ -37,7 +41,11 @@ func flock(f *os.File, timeout time.Duration) error {
 
 // funlock releases an advisory lock on a file descriptor.
 func funlock(f *os.File) error {
-	return syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+	flock := syscall.Flock_t{
+		Type:  syscall.F_UNLCK,
+		Start: 0, Len: 0, Whence: 0,
+	}
+	return syscall.FcntlFlock(f.Fd(), syscall.F_SETLKW, &flock)
 }
 
 // mmap memory maps a DB's data file.
